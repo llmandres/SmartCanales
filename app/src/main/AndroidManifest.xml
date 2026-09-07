@@ -25,6 +25,9 @@
 
 	<queries>
 		<package android:name="org.acestream.media" />
+		<package android:name="org.acestream.media.atv" />
+		<package android:name="org.acestream.core" />
+		<package android:name="org.acestream.core.atv" />
 		<intent>
 			<action android:name="org.acestream.engine.START_ENGINE" />
 		</intent>

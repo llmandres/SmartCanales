@@ -9,7 +9,6 @@ import com.smartcanales.app.data.playlist.UsbPlaylistScanner
 import com.smartcanales.app.data.remote.AceStreamApi
 import com.smartcanales.app.engine.AceStreamEngine
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -73,13 +72,19 @@ class ChannelRepository(
 		return when (val source = StreamSource.from(channel.streamUrl)) {
 			is StreamSource.DirectHttp -> source.url
 			is StreamSource.AceContentId -> {
-				val started = aceStreamEngine.startEngine()
-				if (!started) {
+				if (!aceStreamEngine.isAnyInstalled()) {
 					throw IllegalStateException(
-						"No se pudo iniciar AceStream. ¿Está instalado org.acestream.media?"
+						"AceStream no está instalado. Instala Ace Stream Media (ATV) en la TV."
 					)
 				}
-				delay(ENGINE_WARMUP_MS)
+				aceStreamEngine.startEngine()
+				val ready = aceStreamEngine.waitUntilReady()
+				if (!ready) {
+					throw IllegalStateException(
+						"AceStream instalado (${aceStreamEngine.installedPackages().joinToString()}) " +
+							"pero no responde en :6878. Ábrelo manualmente en la TV y vuelve a probar."
+					)
+				}
 				val apiResponse = aceStreamApi.getStream(contentId = source.contentId)
 				if (!apiResponse.error.isNullOrBlank()) {
 					throw IllegalStateException(apiResponse.error)
@@ -94,7 +99,6 @@ class ChannelRepository(
 	}
 
 	companion object {
-		private const val ENGINE_WARMUP_MS = 1_500L
 		private const val DEFAULT_ASSET = "default_channels.m3u"
 	}
 }
