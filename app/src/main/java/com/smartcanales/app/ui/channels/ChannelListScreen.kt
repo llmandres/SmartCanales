@@ -167,6 +167,36 @@ fun ChannelListScreen(
 				}
 			}
 
+			Spacer(modifier = Modifier.height(10.dp))
+
+			Card(
+				onClick = { viewModel.openAceStream() },
+				modifier = Modifier.fillMaxWidth(),
+				colors = CardDefaults.colors(
+					containerColor = MaterialTheme.colorScheme.surface,
+					focusedContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.25f)
+				),
+				border = CardDefaults.border(
+					focusedBorder = Border(
+						border = BorderStroke(3.dp, MaterialTheme.colorScheme.primary)
+					)
+				),
+				scale = CardDefaults.scale(focusedScale = 1.03f)
+			) {
+				Column(modifier = Modifier.padding(horizontal = 18.dp, vertical = 14.dp)) {
+					Text(
+						text = "Abrir AceStream (login)",
+						style = MaterialTheme.typography.titleMedium,
+						color = MaterialTheme.colorScheme.onSurface
+					)
+					Text(
+						text = "Inicia sesion una vez y vuelve a SmartCanales",
+						style = MaterialTheme.typography.labelSmall,
+						color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f)
+					)
+				}
+			}
+
 			if (!importMessage.isNullOrBlank()) {
 				Spacer(modifier = Modifier.height(8.dp))
 				Text(
