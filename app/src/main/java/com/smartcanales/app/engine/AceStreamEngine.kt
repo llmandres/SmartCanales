@@ -45,12 +45,22 @@ class AceStreamEngine(
 			return false
 		}
 
-		// Intent global (sin package) + por cada paquete detectado
-		startServiceGlobal()
+		// Solo arrancar el servicio/motor. No abrir la UI en cada play
+		// (si no, AceStream roba el foco y puede pedir login a mitad).
+		var started = startServiceGlobal()
 		installed.forEach { pkg ->
-			startServiceForPackage(pkg)
-			launchApp(pkg)
+			if (startServiceForPackage(pkg)) {
+				started = true
+			}
 		}
+		return started
+	}
+
+	/** Abrir la app AceStream una vez (para login / primer arranque). */
+	fun openAceStreamUi(): Boolean {
+		val installed = installedPackages()
+		if (installed.isEmpty()) return false
+		installed.forEach { launchApp(it) }
 		return true
 	}
 

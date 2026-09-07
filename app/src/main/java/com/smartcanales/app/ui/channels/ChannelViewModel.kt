@@ -88,6 +88,14 @@ class ChannelViewModel(
 		}
 	}
 
+	fun openAceStream() {
+		val ok = app.aceStreamEngine.openAceStreamUi()
+		app.setImportMessage(
+			if (ok) "Abriendo AceStream: inicia sesión ahí y vuelve."
+			else "No se detecta AceStream instalado."
+		)
+	}
+
 	fun resetPlayback() {
 		_playbackState.value = PlaybackState.Idle
 		_selectedChannel.value = null
