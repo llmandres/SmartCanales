@@ -74,7 +74,9 @@ class ChannelRepository(
 			is StreamSource.AceContentId -> {
 				if (!aceStreamEngine.isAnyInstalled()) {
 					throw IllegalStateException(
-						"AceStream no está instalado. Instala Ace Stream Media (ATV) en la TV."
+						"No se detecta AceStream en la TV. Abre Ace Stream Media, " +
+							"o instala también 'Ace Stream Engine for Android TV' " +
+							"(ARMv8 64 bit si tu box es 64 bits)."
 					)
 				}
 				aceStreamEngine.startEngine()

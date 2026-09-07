@@ -3,6 +3,7 @@ package com.smartcanales.app.engine
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Build
 import android.util.Log
 import kotlinx.coroutines.delay
@@ -10,19 +11,29 @@ import java.net.HttpURLConnection
 import java.net.URL
 
 /**
- * Arranca el motor AceStream en Android / Android TV y espera a que
- * la API HTTP local responda en 127.0.0.1:6878.
- *
- * Paquetes oficiales:
- * - org.acestream.media / org.acestream.media.atv
- * - org.acestream.core / org.acestream.core.atv
+ * Arranca el motor AceStream y espera la API HTTP en 127.0.0.1:6878.
  */
 class AceStreamEngine(
 	private val context: Context
 ) {
 
 	fun installedPackages(): List<String> {
-		return CANDIDATE_PACKAGES.filter { isInstalled(it) }
+		val found = linkedSetOf<String>()
+
+		CANDIDATE_PACKAGES.forEach { pkg ->
+			if (isInstalled(pkg)) found += pkg
+		}
+
+		// Escaneo amplio (QUERY_ALL_PACKAGES / visibilidad)
+		found += discoverAceStreamPackages()
+
+		// Quien responde al Intent START_ENGINE
+		found += resolvePackagesForStartEngine()
+
+		// Quien maneja acestream://
+		found += resolvePackagesForAceStreamScheme()
+
+		return found.toList()
 	}
 
 	fun isAnyInstalled(): Boolean = installedPackages().isNotEmpty()
@@ -30,23 +41,19 @@ class AceStreamEngine(
 	fun startEngine(): Boolean {
 		val installed = installedPackages()
 		if (installed.isEmpty()) {
-			Log.e(TAG, "AceStream no instalado")
+			Log.e(TAG, "AceStream no instalado / no visible")
 			return false
 		}
 
-		var started = false
-		for (pkg in installed) {
-			if (startServiceForPackage(pkg)) {
-				started = true
-			}
+		// Intent global (sin package) + por cada paquete detectado
+		startServiceGlobal()
+		installed.forEach { pkg ->
+			startServiceForPackage(pkg)
 			launchApp(pkg)
 		}
-		return started || installed.isNotEmpty()
+		return true
 	}
 
-	/**
-	 * Polls the local HTTP API until ready or timeout.
-	 */
 	suspend fun waitUntilReady(
 		timeoutMs: Long = READY_TIMEOUT_MS,
 		pollMs: Long = READY_POLL_MS
@@ -77,6 +84,51 @@ class AceStreamEngine(
 		}
 	}
 
+	private fun discoverAceStreamPackages(): List<String> {
+		return try {
+			@Suppress("DEPRECATION")
+			val packages = context.packageManager.getInstalledPackages(0)
+			packages.mapNotNull { info ->
+				val name = info.packageName ?: return@mapNotNull null
+				if (name.contains("acestream", ignoreCase = true)) name else null
+			}
+		} catch (e: Exception) {
+			Log.w(TAG, "No se pudo listar paquetes", e)
+			emptyList()
+		}
+	}
+
+	private fun resolvePackagesForStartEngine(): List<String> {
+		return try {
+			val intent = Intent(ACTION_START_ENGINE)
+			@Suppress("DEPRECATION")
+			val services = context.packageManager.queryIntentServices(intent, 0)
+			services.mapNotNull { it.serviceInfo?.packageName }
+		} catch (e: Exception) {
+			Log.w(TAG, "queryIntentServices falló", e)
+			emptyList()
+		}
+	}
+
+	private fun resolvePackagesForAceStreamScheme(): List<String> {
+		return try {
+			val intent = Intent(Intent.ACTION_VIEW, Uri.parse("acestream://test"))
+			@Suppress("DEPRECATION")
+			val activities = if (Build.VERSION.SDK_INT >= 33) {
+				context.packageManager.queryIntentActivities(
+					intent,
+					PackageManager.ResolveInfoFlags.of(0)
+				)
+			} else {
+				context.packageManager.queryIntentActivities(intent, 0)
+			}
+			activities.mapNotNull { it.activityInfo?.packageName }
+		} catch (e: Exception) {
+			Log.w(TAG, "queryIntentActivities falló", e)
+			emptyList()
+		}
+	}
+
 	private fun isInstalled(packageName: String): Boolean {
 		return try {
 			if (Build.VERSION.SDK_INT >= 33) {
@@ -90,6 +142,16 @@ class AceStreamEngine(
 			}
 			true
 		} catch (_: Exception) {
+			false
+		}
+	}
+
+	private fun startServiceGlobal(): Boolean {
+		return try {
+			context.startService(Intent(ACTION_START_ENGINE))
+			true
+		} catch (e: Exception) {
+			Log.w(TAG, "startService global falló", e)
 			false
 		}
 	}
@@ -124,7 +186,7 @@ class AceStreamEngine(
 		const val ACTION_START_ENGINE = "org.acestream.engine.START_ENGINE"
 		private const val VERSION_URL =
 			"http://127.0.0.1:6878/webui/api/service?method=get_version"
-		private const val READY_TIMEOUT_MS = 20_000L
+		private const val READY_TIMEOUT_MS = 25_000L
 		private const val READY_POLL_MS = 700L
 
 		val CANDIDATE_PACKAGES = listOf(

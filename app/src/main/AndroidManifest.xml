@@ -15,6 +15,10 @@
 	<uses-permission
 		android:name="android.permission.MANAGE_EXTERNAL_STORAGE"
 		tools:ignore="ScopedStorage" />
+	<!-- Sideload TV: poder detectar AceStream aunque el package id varíe -->
+	<uses-permission
+		android:name="android.permission.QUERY_ALL_PACKAGES"
+		tools:ignore="QueryAllPackagesPermission" />
 
 	<uses-feature
 		android:name="android.software.leanback"
@@ -30,6 +34,13 @@
 		<package android:name="org.acestream.core.atv" />
 		<intent>
 			<action android:name="org.acestream.engine.START_ENGINE" />
+		</intent>
+		<intent>
+			<action android:name="org.acestream.action.start_content" />
+		</intent>
+		<intent>
+			<action android:name="android.intent.action.VIEW" />
+			<data android:scheme="acestream" />
 		</intent>
 	</queries>
 
