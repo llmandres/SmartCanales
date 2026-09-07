@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+	<string name="app_name">SmartCanales</string>
+	<string name="channels_title">Canales</string>
+	<string name="player_back">Volver</string>
+	<string name="empty_channels">Sube un archivo .m3u desde el navegador.</string>
+	<string name="loading_stream">Preparando reproducción…</string>
+	<string name="error_generic">Error al reproducir el canal</string>
+</resources>
